@@ -15,12 +15,14 @@ Production-ready Kubernetes manifests with security best practices, resource lim
 ├── secrets/           # Secret management patterns
 ├── networkpolicies/   # Network isolation
 ├── rbac/              # Role-based access control
-└── monitoring/        # Prometheus, alerts, ServiceMonitors
+├── monitoring/        # Prometheus, alerts, ServiceMonitors
+└── pod-security/      # Pod Security Standards (PSA) configuration
 ```
 
 ## Features
 
 - ✅ Security contexts and pod security standards
+- ✅ **Pod Security Admission (PSA)** namespace configurations
 - ✅ Resource requests/limits
 - ✅ Liveness/readiness probes
 - ✅ Network policies for isolation

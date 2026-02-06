@@ -1,0 +1,30 @@
+# Baseline namespace - for most application workloads
+# Prevents known privilege escalations while allowing common configurations
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: baseline-apps
+  labels:
+    # PSA labels - baseline enforcement with restricted auditing
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted    # Audit at higher level
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted     # Warn about restricted violations
+    pod-security.kubernetes.io/warn-version: latest
+    # Metadata
+    environment: production
+    security-level: baseline
+  annotations:
+    description: "Baseline security for standard application workloads"
+---
+# Baseline allows:
+# - Default container configurations
+# - Non-privileged containers
+# - Standard capabilities (NET_BIND_SERVICE, etc.)
+#
+# Baseline blocks:
+# - Privileged containers
+# - Host namespaces (hostPID, hostIPC, hostNetwork)
+# - Host path volumes
+# - Privileged capabilities

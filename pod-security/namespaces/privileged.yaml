@@ -1,0 +1,25 @@
+# Privileged namespace - for system-level workloads only
+# Use sparingly: CNI plugins, monitoring agents, storage drivers
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: privileged-system
+  labels:
+    # PSA labels - privileged level
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    # Metadata
+    environment: system
+    security-level: privileged
+  annotations:
+    description: "Privileged namespace for system workloads requiring host access"
+---
+# Example: kube-system should typically be privileged
+# To label an existing namespace:
+# kubectl label namespace kube-system \
+#   pod-security.kubernetes.io/enforce=privileged \
+#   pod-security.kubernetes.io/audit=privileged \
+#   pod-security.kubernetes.io/warn=privileged \
+#   --overwrite
