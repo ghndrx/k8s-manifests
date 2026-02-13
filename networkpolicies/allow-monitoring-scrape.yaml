@@ -1,0 +1,41 @@
+# Allow Prometheus/Monitoring Scrape
+# Permits metrics collection from monitoring namespace
+# Essential for observability in locked-down environments
+#
+# Assumes: Prometheus is in 'monitoring' namespace with standard labels
+# Adapt ports to match your metrics endpoints (9090, 9100, custom)
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring-scrape
+  labels:
+    policy-type: allow
+    security.kubernetes.io/policy: "baseline"
+spec:
+  # Apply to pods exposing metrics
+  podSelector:
+    matchLabels:
+      prometheus.io/scrape: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow Prometheus to scrape metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        # Common metrics ports
+        - protocol: TCP
+          port: 9090    # Prometheus
+        - protocol: TCP
+          port: 9100    # Node Exporter
+        - protocol: TCP
+          port: 8080    # Application metrics
+        - protocol: TCP
+          port: 8443    # Secure metrics
+        # Add your custom metrics ports here

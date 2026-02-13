@@ -1,0 +1,40 @@
+# Allow DNS Egress Network Policy
+# CRITICAL: Apply alongside default-deny to prevent DNS resolution failures
+# Without this, pods cannot resolve any hostnames (internal or external)
+#
+# This policy allows:
+# - DNS queries to kube-dns/CoreDNS (UDP/TCP port 53)
+# - Works with both kube-system DNS and custom DNS services
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  labels:
+    policy-type: allow
+    security.kubernetes.io/policy: "baseline"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS to kube-system namespace (CoreDNS/kube-dns)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Alternative: Allow DNS to any DNS server (less restrictive)
+    # Uncomment if using external DNS or node-local DNS cache
+    # - ports:
+    #     - protocol: UDP
+    #       port: 53
+    #     - protocol: TCP
+    #       port: 53

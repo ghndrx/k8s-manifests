@@ -1,0 +1,23 @@
+# Default Deny All Network Policy
+# Apply this to namespaces to enforce zero-trust networking
+# Pods will have NO ingress or egress until explicitly allowed
+#
+# Usage: Apply per-namespace, then add allow policies for legitimate traffic
+# Best Practice: Start with deny-all, then whitelist required connections
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  labels:
+    policy-type: default-deny
+    security.kubernetes.io/policy: "strict"
+spec:
+  # Select all pods in the namespace
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  # Empty ingress/egress = deny all
+  ingress: []
+  egress: []

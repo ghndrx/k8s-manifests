@@ -1,0 +1,27 @@
+# Allow Same-Namespace Communication
+# Permits pod-to-pod traffic within the same namespace
+# Use for microservices that need to communicate internally
+#
+# Common pattern: Apply to namespaces where services need to talk to each other
+# but should be isolated from other namespaces
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  labels:
+    policy-type: allow
+    security.kubernetes.io/policy: "baseline"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow all ingress from pods in same namespace
+    - from:
+        - podSelector: {}
+  egress:
+    # Allow all egress to pods in same namespace
+    - to:
+        - podSelector: {}

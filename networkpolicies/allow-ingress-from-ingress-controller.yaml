@@ -1,0 +1,39 @@
+# Allow Ingress from Ingress Controller
+# Permits traffic from ingress-nginx to backend pods
+# Adapt labels/namespaces for your ingress controller (traefik, haproxy, etc.)
+#
+# Usage: Apply to namespaces containing web-facing workloads
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-ingress-controller
+  labels:
+    policy-type: allow
+    security.kubernetes.io/policy: "baseline"
+spec:
+  # Apply to pods that should receive external traffic
+  podSelector:
+    matchLabels:
+      network.kubernetes.io/allow-ingress: "true"
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from ingress-nginx namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443
+    # Alternative: Allow from any namespace with ingress label
+    # - from:
+    #     - namespaceSelector:
+    #         matchLabels:
+    #           network.kubernetes.io/ingress: "true"
