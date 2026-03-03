@@ -1,0 +1,44 @@
+# PodDisruptionBudget for Critical Single-Instance Workloads
+# Use for: controllers, schedulers, single-writer databases
+# Strategy: Block all voluntary evictions (requires manual approval)
+#
+# WARNING: This will block node drains! Use only when you have
+# operational procedures for manual approval of disruptions.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: critical-singleton-pdb
+  labels:
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: critical-workload
+  annotations:
+    description: "Blocks voluntary evictions - requires manual PDB deletion for maintenance"
+    runbook: "https://wiki.example.com/runbooks/critical-singleton-maintenance"
+spec:
+  # Block all voluntary evictions
+  # Node drains will hang until this PDB is deleted
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: critical-singleton
+      tier: control-plane
+  # Still allow eviction of unhealthy pods for recovery
+  unhealthyPodEvictionPolicy: AlwaysAllow
+---
+# Safer alternative: Allow disruption but minimize downtime
+# Use when you can tolerate brief unavailability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: singleton-with-grace-pdb
+  labels:
+    app.kubernetes.io/component: pdb
+spec:
+  # Allow 1 pod to be disrupted (the singleton itself)
+  # Combined with high terminationGracePeriodSeconds in the pod spec,
+  # this allows graceful shutdown while permitting node maintenance
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: singleton-service

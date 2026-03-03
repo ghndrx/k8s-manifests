@@ -16,7 +16,8 @@ Production-ready Kubernetes manifests with security best practices, resource lim
 ├── networkpolicies/   # Network isolation
 ├── rbac/              # Role-based access control
 ├── monitoring/        # Prometheus, alerts, ServiceMonitors
-└── pod-security/      # Pod Security Standards (PSA) configuration
+├── pod-security/      # Pod Security Standards (PSA) configuration
+└── reliability/       # PodDisruptionBudgets and HorizontalPodAutoscalers
 ```
 
 ## Features
@@ -28,6 +29,8 @@ Production-ready Kubernetes manifests with security best practices, resource lim
 - ✅ Network policies for isolation
 - ✅ RBAC least-privilege patterns
 - ✅ Kustomize overlays for environments
+- ✅ **PodDisruptionBudgets** for high availability
+- ✅ **HorizontalPodAutoscalers** with multi-metric and custom metrics
 
 ## Quick Start
 

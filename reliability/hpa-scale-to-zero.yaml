@@ -1,0 +1,111 @@
+# HorizontalPodAutoscaler with Scale-to-Zero Support
+# Use for: Development environments, event-driven workloads, cost optimization
+# Requires: Kubernetes 1.27+ with HPAScaleToZero feature gate, or KEDA
+#
+# NOTE: Native K8s scale-to-zero requires:
+#   1. HPAScaleToZero feature gate enabled
+#   2. Custom/external metrics (not resource metrics)
+#   3. Activation mechanism (KEDA provides this automatically)
+---
+# Option 1: Native K8s HPA with minReplicas: 0 (K8s 1.27+ with feature gate)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: event-processor-hpa
+  labels:
+    app.kubernetes.io/component: hpa
+    app.kubernetes.io/part-of: event-processor
+  annotations:
+    description: "Scales to zero when queue is empty"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: event-processor
+  
+  # Scale to zero when no work
+  minReplicas: 0
+  maxReplicas: 100
+  
+  metrics:
+    # Scale based on queue depth
+    - type: External
+      external:
+        metric:
+          name: sqs_queue_messages_visible
+          selector:
+            matchLabels:
+              queue: events-queue
+        target:
+          # 1 pod per 50 messages
+          type: AverageValue
+          averageValue: "50"
+  
+  behavior:
+    scaleDown:
+      # Wait 5 minutes of zero activity before scaling to zero
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+    scaleUp:
+      # Scale up immediately when messages arrive
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+
+---
+# Option 2: KEDA ScaledObject (recommended for scale-to-zero)
+# KEDA provides better scale-to-zero support with activation thresholds
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: event-processor-scaledobject
+  labels:
+    app.kubernetes.io/component: keda
+    app.kubernetes.io/part-of: event-processor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: event-processor
+  
+  # KEDA-specific settings
+  pollingInterval: 15          # Check metrics every 15s
+  cooldownPeriod: 300          # Wait 5min before scaling to zero
+  idleReplicaCount: 0          # Scale to zero when idle
+  minReplicaCount: 0           # Minimum replicas
+  maxReplicaCount: 100         # Maximum replicas
+  
+  triggers:
+    # AWS SQS trigger
+    - type: aws-sqs-queue
+      metadata:
+        queueURL: https://sqs.us-east-1.amazonaws.com/123456789/events-queue
+        queueLength: "50"      # Messages per pod
+        awsRegion: us-east-1
+        # activationQueueLength: Start scaling when queue has > 0 messages
+        activationQueueLength: "1"
+      authenticationRef:
+        name: aws-credentials
+    
+    # Alternative: RabbitMQ trigger
+    # - type: rabbitmq
+    #   metadata:
+    #     queueName: events
+    #     hostFromEnv: RABBITMQ_HOST
+    #     mode: QueueLength
+    #     value: "50"
+    #     activationValue: "1"
+    
+    # Alternative: Kafka trigger
+    # - type: kafka
+    #   metadata:
+    #     bootstrapServers: kafka:9092
+    #     consumerGroup: event-processor
+    #     topic: events
+    #     lagThreshold: "100"
+    #     activationLagThreshold: "1"

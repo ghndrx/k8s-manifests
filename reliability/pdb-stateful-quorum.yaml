@@ -1,0 +1,42 @@
+# PodDisruptionBudget for Quorum-Based Stateful Applications
+# Use for: etcd, ZooKeeper, Consul, Kafka, Redis Sentinel, databases
+# Strategy: maxUnavailable: 1 ensures quorum is never broken
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: stateful-quorum-pdb
+  labels:
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: stateful-cluster
+spec:
+  # Only allow 1 pod to be unavailable at a time
+  # This preserves quorum for 3+ node clusters:
+  #   - 3 nodes: 2 remain (quorum maintained)
+  #   - 5 nodes: 4 remain (quorum maintained)
+  #   - 7 nodes: 6 remain (quorum maintained)
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: etcd
+      # Adjust labels to match your stateful application
+  # For stateful apps, allow eviction of unhealthy pods
+  # to enable recovery without manual intervention
+  unhealthyPodEvictionPolicy: AlwaysAllow
+---
+# Alternative: minAvailable for explicit quorum size
+# Use when you want to guarantee exact quorum numbers
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: zookeeper-pdb
+  labels:
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: zookeeper
+spec:
+  # For a 5-node ZooKeeper cluster, quorum = 3
+  # Explicitly require 3 pods available
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app: zookeeper

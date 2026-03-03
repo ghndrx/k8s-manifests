@@ -1,0 +1,73 @@
+# HorizontalPodAutoscaler with Multi-Metric Scaling (CPU + Memory)
+# Use for: Most production workloads
+# Strategy: Scale on BOTH CPU and memory to prevent one metric from masking issues
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: app-hpa
+  labels:
+    app.kubernetes.io/component: hpa
+    app.kubernetes.io/part-of: application
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: app-deployment
+  
+  # Replica bounds
+  minReplicas: 2          # HA minimum
+  maxReplicas: 20         # Cost/resource ceiling
+  
+  metrics:
+    # CPU-based scaling
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          # Scale up when average CPU exceeds 70%
+          # Leave headroom for traffic spikes
+          averageUtilization: 70
+    
+    # Memory-based scaling
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          # Scale up when average memory exceeds 80%
+          # Memory leaks will trigger scaling before OOM
+          averageUtilization: 80
+  
+  # Scaling behavior (K8s 1.23+)
+  behavior:
+    scaleDown:
+      # Prevent thrashing: wait 5 minutes before scaling down
+      stabilizationWindowSeconds: 300
+      policies:
+        # Scale down at most 2 pods per minute
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+        # Or at most 10% per minute
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+      # Use the policy that removes fewer pods
+      selectPolicy: Min
+    
+    scaleUp:
+      # React quickly to load increases
+      stabilizationWindowSeconds: 0
+      policies:
+        # Scale up at most 4 pods per 15 seconds
+        - type: Pods
+          value: 4
+          periodSeconds: 15
+        # Or double the current count
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+      # Use the policy that adds more pods (faster response)
+      selectPolicy: Max

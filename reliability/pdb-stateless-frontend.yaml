@@ -1,0 +1,26 @@
+# PodDisruptionBudget for Stateless Frontend Services
+# Use for: web servers, API gateways, stateless microservices
+# Strategy: percentage-based minAvailable scales with replicas
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: frontend-pdb
+  labels:
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: frontend
+spec:
+  # Keep at least 80% of pods available during disruptions
+  # For 5 replicas: min 4 available, max 1 disrupted
+  # For 10 replicas: min 8 available, max 2 disrupted
+  minAvailable: 80%
+  selector:
+    matchLabels:
+      app: frontend
+      # Or use more specific labels:
+      # app.kubernetes.io/name: frontend
+      # app.kubernetes.io/instance: production
+  # Unhealthy pod eviction policy (K8s 1.27+)
+  # IfHealthyBudget: only evict unhealthy pods if PDB is satisfied
+  # AlwaysAllow: always allow eviction of unhealthy pods
+  unhealthyPodEvictionPolicy: IfHealthyBudget
